@@ -96,35 +96,48 @@ def main():
     print_controls()
 
     last_clipboard = ""
-    api_key = "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"
-    api_url = "https://openrouter.ai/api/v1/chat/completions"
+    api_key = "AIzaSyBzeBqXflk2kR3c2x86xPK6awkxQhwsJqA"
+    api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
     headers = {
-        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://your-site-url.com",  # Optional
-        "X-Title": "YourSiteName",  # Optional
+        "X-goog-api-key": api_key,
     }
 
-    print("[INFO] Monitoring clipboard. Copy any text to send to OpenRouter API...")
+    print("[INFO] Monitoring clipboard. Copy any text to send to Gemini API...")
     while True:
         try:
             current_clipboard = pyperclip.paste()
         except Exception:
             current_clipboard = ""
         if current_clipboard and current_clipboard != last_clipboard:
-            print("[CLIPBOARD] New text detected. Sending to OpenRouter API...")
+            print("[CLIPBOARD] New text detected. Sending to Gemini API...")
             payload = {
-                "model": "deepseek/deepseek-chat-v3-0324:free",
-                "messages": [
-                    {"role": "user", "content": f"only c++ program whith custom input\n{current_clipboard}"}
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": f"only c++ program. with custom input.the input  and output format should be same \n{current_clipboard}"
+                            }
+                        ]
+                    }
                 ]
             }
             try:
                 response = requests.post(api_url, headers=headers, data=json.dumps(payload))
                 if response.status_code == 200:
                     data = response.json()
-                    # Extract the response text
-                    result = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    # Extract the response text from Gemini API structure
+                    result = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    
+                    # Remove code block markers
+                    if result.startswith("```cpp"):
+                        result = result[6:]  # Remove ```cpp
+                    if result.startswith("```"):
+                        result = result[3:]  # Remove ```
+                    if result.endswith("```"):
+                        result = result[:-3]  # Remove trailing ```
+                    result = result.strip()  # Remove leading/trailing whitespace
+                    
                     print("[API RESPONSE] Will auto-type after 8 seconds:")
                     print(result)
                     time.sleep(8)
